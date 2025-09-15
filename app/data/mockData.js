@@ -43,8 +43,8 @@ export const DEPARTMENTS = [
 export const mockUsers = [
   {
     id: '1',
-    name: 'John Doe',
-    email: 'john.doe@hesu.com',
+    name: 'Elvin Kakomo',
+    email: 'elvin.kakomo@hesu.co.tz',
     role: USER_ROLES.REQUEST_INITIATOR,
     department: 'IT Department',
     avatar: null
@@ -75,8 +75,8 @@ export const mockUsers = [
   },
   {
     id: '5',
-    name: 'David Smith',
-    email: 'david.smith@hesu.com',
+    name: 'Norah Norasco',
+    email: 'norah.norasco@hesu.co.tz',
     role: USER_ROLES.GENERAL_USER,
     department: 'Finance Department',
     avatar: null
@@ -88,14 +88,14 @@ export const mockRequests = [
     id: '1',
     requisitionNumber: 'REQ-2024-001',
     itemRequested: 'Laptop Computer - Dell Latitude 5520',
-    requesterName: 'John Doe',
-    requesterEmail: 'john.doe@hesu.com',
+    requesterName: 'Norah Norasco',
+    requesterEmail: 'norah.norasco@hesu.co.tz',
     department: 'IT Department',
     purpose: 'Replace outdated laptop for software development',
     priority: PRIORITY_LEVELS.HIGH,
     status: REQUEST_STATUS.PRODUCT_SOURCING,
-    assignedOfficer: 'Mike Wilson',
-    assignedOfficerEmail: 'mike.wilson@hesu.com',
+    assignedOfficer: 'Ibrahim Msambwe',
+    assignedOfficerEmail: 'ibrahim.msambwe@hesu.co.tz',
     poNumber: null,
     createdAt: '2024-01-15T09:00:00Z',
     updatedAt: '2024-01-16T14:30:00Z',
@@ -105,20 +105,20 @@ export const mockRequests = [
         stage: REQUEST_STATUS.PENDING,
         timestamp: '2024-01-15T09:00:00Z',
         note: 'Request created and submitted',
-        updatedBy: 'John Doe'
+        updatedBy: 'Elvin Kakomo'
       },
       {
         stage: REQUEST_STATUS.ASSIGNED,
         timestamp: '2024-01-15T10:30:00Z',
         note: 'Assigned to Mike Wilson',
-        updatedBy: 'Sarah Johnson'
+        updatedBy: 'Ibrahim Msambwe'
       },
-      {
-        stage: REQUEST_STATUS.PRODUCT_SOURCING,
-        timestamp: '2024-01-16T14:30:00Z',
-        note: 'Currently sourcing suppliers for Dell Latitude 5520',
-        updatedBy: 'Mike Wilson'
-      }
+      // {
+      //   stage: REQUEST_STATUS.PRODUCT_SOURCING,
+      //   timestamp: '2024-01-16T14:30:00Z',
+      //   note: 'Currently sourcing suppliers for Dell Latitude 5520',
+      //   updatedBy: 'Mike Wilson'
+      // }
     ]
   },
   {

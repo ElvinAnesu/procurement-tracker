@@ -115,7 +115,7 @@ const LoginPage = () => {
         </Card>
 
         {/* Demo Users */}
-        <div className="mt-6">
+        {/* <div className="mt-6">
           <Card>
             <CardHeader>
               <h3 className="text-lg font-medium text-gray-900">Demo Users</h3>
@@ -139,7 +139,7 @@ const LoginPage = () => {
               </div>
             </CardContent>
           </Card>
-        </div>
+        </div> */}
       </div>
     </div>
   );
