@@ -93,7 +93,7 @@ export const mockRequests = [
     department: 'IT Department',
     purpose: 'Replace outdated laptop for software development',
     priority: PRIORITY_LEVELS.HIGH,
-    status: REQUEST_STATUS.PRODUCT_SOURCING,
+    status: REQUEST_STATUS.CREATE_PO,
     assignedOfficer: 'Ibrahim Msambwe',
     assignedOfficerEmail: 'ibrahim.msambwe@hesu.co.tz',
     poNumber: null,
@@ -103,22 +103,29 @@ export const mockRequests = [
     trackingHistory: [
       {
         stage: REQUEST_STATUS.PENDING,
-        timestamp: '2024-01-15T09:00:00Z',
+        timestamp: '2025-01-15T09:00:00Z',
         note: 'Request created and submitted',
         updatedBy: 'Elvin Kakomo'
       },
       {
         stage: REQUEST_STATUS.ASSIGNED,
-        timestamp: '2024-01-15T10:30:00Z',
-        note: 'Assigned to Mike Wilson',
+        timestamp: '2025-01-15T10:30:00Z',
+        note: 'Assigned to Ibrahim Msambwe',
         updatedBy: 'Ibrahim Msambwe'
       },
-      // {
-      //   stage: REQUEST_STATUS.PRODUCT_SOURCING,
-      //   timestamp: '2024-01-16T14:30:00Z',
-      //   note: 'Currently sourcing suppliers for Dell Latitude 5520',
-      //   updatedBy: 'Mike Wilson'
-      // }
+      {
+        stage: REQUEST_STATUS.PRODUCT_SOURCING,
+        timestamp: '2025-01-16T14:30:00Z',
+        note: 'Currently sourcing suppliers for Dell Latitude 5520',
+        updatedBy: 'Ibrahim Msambwe'
+      },
+      {
+        stage: REQUEST_STATUS.CREATE_PO,
+        timestamp: '2025-01-15T14:20:00Z',
+        note: 'Purchase Order PO-2024-015 created with Office Solutions Ltd',
+        updatedBy: 'Ibrahim Msambwe'
+      },
+
     ]
   },
   {
