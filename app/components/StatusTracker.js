@@ -1,25 +1,40 @@
 'use client';
 
-import { CheckCircle, Clock, XCircle } from 'lucide-react';
-import { REQUEST_STATUS, getStatusDisplayInfo } from '../data/mockData';
+import { CheckCircle, Clock, XCircle, Users, TrendingUp, FileText, DollarSign } from 'lucide-react';
 import Badge from './ui/Badge';
 
 const StatusTracker = ({ request, className = '' }) => {
+  // Helper function for status display
+  const getStatusDisplayInfo = (status) => {
+    const statusMap = {
+      'pending-assignment': { label: 'Pending Assignment', color: 'yellow', icon: Clock },
+      'assigned-to-officer': { label: 'Assigned to Officer', color: 'blue', icon: Users },
+      'product-sourcing': { label: 'Product Sourcing', color: 'purple', icon: TrendingUp },
+      'po-created': { label: 'Purchase Order Created', color: 'indigo', icon: FileText },
+      'finance-approval': { label: 'Finance Approval', color: 'orange', icon: DollarSign },
+      'md-approval': { label: 'MD Approval', color: 'amber', icon: CheckCircle },
+      'payment-processing': { label: 'Payment Processing', color: 'cyan', icon: DollarSign },
+      'awaiting-delivery': { label: 'Awaiting Delivery', color: 'teal', icon: Clock },
+      'completed': { label: 'Completed', color: 'green', icon: CheckCircle }
+    };
+    return statusMap[status] || { label: status, color: 'gray', icon: FileText };
+  };
+
   const statusOrder = [
-    REQUEST_STATUS.PENDING,
-    REQUEST_STATUS.ASSIGNED,
-    REQUEST_STATUS.PRODUCT_SOURCING,
-    REQUEST_STATUS.CREATE_PO,
-    REQUEST_STATUS.FINANCE_APPROVAL,
-    REQUEST_STATUS.MD_APPROVAL,
-    REQUEST_STATUS.PO_PAYMENT,
-    REQUEST_STATUS.DELIVERY,
-    REQUEST_STATUS.COMPLETED
+    'pending-assignment',
+    'assigned-to-officer', 
+    'product-sourcing',
+    'po-created',
+    'finance-approval',
+    'md-approval',
+    'payment-processing',
+    'awaiting-delivery',
+    'completed'
   ];
 
   const currentStatusIndex = statusOrder.indexOf(request.status);
-  const isDeclined = request.status === REQUEST_STATUS.DECLINED;
-  const isCancelled = request.status === REQUEST_STATUS.CANCELLED;
+  const isDeclined = false; // No declined status in current system
+  const isCancelled = false; // No cancelled status in current system
 
   return (
     <div className={`space-y-3 sm:space-y-4 ${className}`}>
@@ -38,8 +53,8 @@ const StatusTracker = ({ request, className = '' }) => {
         <div className="flex items-center justify-between min-w-max px-2 sm:px-0">
           {statusOrder.map((status, index) => {
             const statusInfo = getStatusDisplayInfo(status);
-            const isCompleted = index < currentStatusIndex;
-            const isCurrent = index === currentStatusIndex && !isDeclined && !isCancelled;
+            const isCompleted = index <= currentStatusIndex; // Include current stage as completed (green)
+            const isCurrent = index === currentStatusIndex;
             const isUpcoming = index > currentStatusIndex;
             
             return (
@@ -47,19 +62,16 @@ const StatusTracker = ({ request, className = '' }) => {
                 <div className={`
                   w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium
                   ${isCompleted ? 'bg-green-500 text-white' : 
-                    isCurrent ? 'bg-blue-500 text-white' : 
                     isUpcoming ? 'bg-gray-200 text-gray-500' : 'bg-gray-200 text-gray-500'}
                 `}>
                   {isCompleted ? (
                     <CheckCircle className="w-3 h-3 sm:w-5 sm:h-5" />
-                  ) : isCurrent ? (
-                    <Clock className="w-3 h-3 sm:w-5 sm:h-5" />
                   ) : (
                     <span className="text-xs sm:text-sm">{index + 1}</span>
                   )}
                 </div>
                 <div className="text-xs text-center max-w-16 sm:max-w-20">
-                  <div className={`font-medium ${isCurrent ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-gray-500'}`}>
+                  <div className={`font-medium ${isCompleted ? 'text-green-600' : 'text-gray-500'}`}>
                     <span className="hidden sm:inline">{statusInfo.label}</span>
                     <span className="sm:hidden">{statusInfo.label.split(' ')[0]}</span>
                   </div>

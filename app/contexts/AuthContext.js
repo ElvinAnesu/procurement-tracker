@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect } from 'react';
 import { mockUsers, USER_ROLES } from '../data/mockData';
+import { supabase } from '../../lib/supabase';
 
 const AuthContext = createContext();
 
@@ -18,7 +19,7 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored user session
+    // Simple check: just get user from localStorage
     const storedUser = localStorage.getItem('procurement_user');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
@@ -26,23 +27,41 @@ export const AuthProvider = ({ children }) => {
     setIsLoading(false);
   }, []);
 
-  const login = (email, password) => {
-    // Simple mock authentication - in real app, this would be an API call
-    const foundUser = mockUsers.find(u => u.email === email);
-    
-    if (foundUser) {
-      const userData = { ...foundUser, password }; // Don't store password in real app
-      setUser(userData);
-      localStorage.setItem('procurement_user', JSON.stringify(userData));
-      return { success: true, user: userData };
+  const login = async (email, password) => {
+    try {
+      const response = await fetch('/api/auth/signin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setUser(data.user);
+        localStorage.setItem('procurement_user', JSON.stringify(data.user));
+        return { success: true, user: data.user };
+      } else {
+        return { success: false, error: data.error };
+      }
+    } catch (error) {
+      return { success: false, error: 'Network error' };
     }
-    
-    return { success: false, error: 'Invalid credentials' };
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('procurement_user');
+  const logout = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setUser(null);
+      localStorage.removeItem('procurement_user');
+    }
   };
 
   const switchUser = (userId) => {

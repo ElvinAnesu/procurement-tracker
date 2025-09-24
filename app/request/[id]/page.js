@@ -65,30 +65,11 @@ const RequestDetailsPage = () => {
     );
   }
 
-  // Check if user has permission to view this request
-  const canView = hasRole('procurement_manager') || 
-                  hasRole('procurement_officer') || 
-                  request.requesterEmail === user?.email;
-
-  if (!canView) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
-          <p className="text-gray-600 mb-6">You don&apos;t have permission to view this request.</p>
-          <Link href="/dashboard">
-            <Button>Back to Dashboard</Button>
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  const canEdit = hasRole('procurement_officer') && request.assignedOfficerEmail === user?.email;
+  const canEdit = true; // All users can edit for now
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">

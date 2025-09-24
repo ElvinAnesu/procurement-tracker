@@ -14,6 +14,7 @@ const Select = forwardRef(({
 }, ref) => {
   const selectClasses = `
     block w-full px-3 py-2 border rounded-md shadow-sm
+    text-gray-900 bg-white
     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
     disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed
     ${error ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'}

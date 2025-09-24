@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import ProtectedRoute from '../components/ProtectedRoute';
-import { mockRequests, getStatusDisplayInfo, getPriorityDisplayInfo } from '../data/mockData';
 import { 
   Plus, 
   FileText, 
@@ -21,7 +19,7 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 
 const DashboardPage = () => {
-  const { user, hasRole } = useAuth();
+  const { user } = useAuth();
   const [stats, setStats] = useState({
     totalRequests: 0,
     pendingRequests: 0,
@@ -29,28 +27,68 @@ const DashboardPage = () => {
     urgentRequests: 0
   });
   const [recentRequests, setRecentRequests] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Helper functions for status and priority display
+  const getStatusDisplayInfo = (status) => {
+    const statusMap = {
+      'pending-assignment': { label: 'Pending Assignment', color: 'yellow', icon: Clock },
+      'assigned-to-officer': { label: 'Assigned to Officer', color: 'blue', icon: Users },
+      'product-sourcing': { label: 'Product Sourcing', color: 'purple', icon: TrendingUp },
+      'po-created': { label: 'Purchase Order Created', color: 'indigo', icon: FileText },
+      'finance-approval': { label: 'Finance Approval', color: 'orange', icon: DollarSign },
+      'md-approval': { label: 'MD Approval', color: 'amber', icon: CheckCircle },
+      'payment-processing': { label: 'Payment Processing', color: 'cyan', icon: DollarSign },
+      'awaiting-delivery': { label: 'Awaiting Delivery', color: 'teal', icon: Clock },
+      'completed': { label: 'Completed', color: 'green', icon: CheckCircle }
+    };
+    return statusMap[status] || { label: status, color: 'gray', icon: FileText };
+  };
+
+  const getPriorityDisplayInfo = (priority) => {
+    const priorityMap = {
+      'high': { label: 'High', color: 'red', icon: AlertTriangle },
+      'normal': { label: 'Normal', color: 'blue', icon: FileText },
+      'low': { label: 'Low', color: 'green', icon: CheckCircle }
+    };
+    return priorityMap[priority] || { label: priority, color: 'gray', icon: FileText };
+  };
+
+  // Fetch requests from database
+  const fetchRequests = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/item-requests');
+      const result = await response.json();
+      
+      if (result.success) {
+        const requests = result.data;
+        
+        // Calculate stats
+        const total = requests.length;
+        const pending = requests.filter(req => 
+          ['pending-assignment', 'assigned-to-officer', 'product-sourcing', 'po-created', 'finance-approval', 'md-approval', 'payment-processing', 'awaiting-delivery'].includes(req.status)
+        ).length;
+        const completed = requests.filter(req => req.status === 'completed').length;
+        const urgent = requests.filter(req => req.priority === 'high').length;
+
+        setStats({ totalRequests: total, pendingRequests: pending, completedRequests: completed, urgentRequests: urgent });
+        setRecentRequests(requests.slice(0, 5)); // Get 5 most recent
+      } else {
+        console.error('Error fetching requests:', result.error);
+      }
+    } catch (error) {
+      console.error('Error fetching requests:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (user) {
-      let userRequests = [];
-      
-      if (hasRole('request_initiator') || hasRole('general_user')) {
-        userRequests = mockRequests.filter(req => req.requesterEmail === user.email);
-      } else if (hasRole('procurement_manager') || hasRole('procurement_officer')) {
-        userRequests = mockRequests;
-      }
-
-      const total = userRequests.length;
-      const pending = userRequests.filter(req => 
-        ['pending', 'assigned', 'product_sourcing', 'create_po', 'finance_approval', 'md_approval', 'po_payment', 'delivery'].includes(req.status)
-      ).length;
-      const completed = userRequests.filter(req => req.status === 'completed').length;
-      const urgent = userRequests.filter(req => req.priority === 'urgent').length;
-
-      setStats({ totalRequests: total, pendingRequests: pending, completedRequests: completed, urgentRequests: urgent });
-      setRecentRequests(userRequests.slice(0, 5));
+      fetchRequests();
     }
-  }, [user, hasRole]);
+  }, [user]);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -59,48 +97,35 @@ const DashboardPage = () => {
     return 'Good evening';
   };
 
-  const getRoleSpecificContent = () => {
-    if (hasRole('request_initiator')) {
-      return {
-        title: 'Request Management',
-        description: 'Create and track your procurement requests',
-        primaryAction: { text: 'Create New Request', href: '/create-request' },
-        secondaryAction: { text: 'View My Requests', href: '/my-requests' }
-      };
-    } else if (hasRole('procurement_manager')) {
-      return {
-        title: 'Procurement Management',
-        description: 'Manage procurement officers and oversee all requests',
-        primaryAction: { text: 'Manage Officers', href: '/manage-officers' },
-        secondaryAction: { text: 'View All Requests', href: '/all-requests' }
-      };
-    } else if (hasRole('procurement_officer')) {
-      return {
-        title: 'Procurement Operations',
-        description: 'Process and track procurement requests',
-        primaryAction: { text: 'View All Requests', href: '/all-requests' },
-        secondaryAction: { text: 'My Assigned Requests', href: '/my-assigned-requests' }
-      };
-    } else {
-      return {
-        title: 'Request Tracking',
-        description: 'Track your procurement requests',
-        primaryAction: { text: 'Track Request', href: '/track' },
-        secondaryAction: { text: 'View My Requests', href: '/my-requests' }
-      };
-    }
+  const content = {
+    title: 'Procurement Management',
+    description: 'Manage and track all procurement requests',
+    primaryAction: { text: 'Create New Request', href: '/create-request' },
+    secondaryAction: { text: 'View All Requests', href: '/all-requests' }
   };
 
-  const content = getRoleSpecificContent();
+  if (isLoading) {
+    return (
+      <div className="p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading dashboard...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">
-            {getGreeting()}, {user?.name}!
+            {getGreeting()}, {user?.firstname} {user?.lastname}!
           </h1>
           <p className="mt-2 text-lg text-gray-600">
             {content.description}
@@ -200,8 +225,8 @@ const DashboardPage = () => {
                   recentRequests.map((request) => (
                     <div key={request.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">{request.itemRequested}</p>
-                        <p className="text-xs text-gray-500">REQ: {request.requisitionNumber}</p>
+                        <p className="text-sm font-medium text-gray-900">{request.item}</p>
+                        <p className="text-xs text-gray-500">REQ: {String(request.id).padStart(3, '0')}</p>
                       </div>
                       <Badge 
                         variant={getStatusDisplayInfo(request.status).color.includes('green') ? 'success' : 'info'}
@@ -251,10 +276,10 @@ const DashboardPage = () => {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div>
                             <div className="text-sm font-medium text-gray-900">
-                              {request.itemRequested}
+                              {request.item}
                             </div>
                             <div className="text-sm text-gray-500">
-                              {request.requisitionNumber}
+                              {String(request.id).padStart(3, '0')}
                             </div>
                           </div>
                         </td>
@@ -278,7 +303,7 @@ const DashboardPage = () => {
                           </Badge>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {format(new Date(request.createdAt), 'MMM dd, yyyy')}
+                          {format(new Date(request.created_at), 'MMM dd, yyyy')}
                         </td>
                       </tr>
                     ))}
@@ -290,7 +315,6 @@ const DashboardPage = () => {
         )}
         </div>
       </div>
-    </ProtectedRoute>
   );
 };
 

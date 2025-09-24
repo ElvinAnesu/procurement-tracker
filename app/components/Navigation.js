@@ -9,7 +9,6 @@ import {
   Search, 
   FileText, 
   Users, 
-  Settings, 
   LogOut, 
   Menu, 
   X,
@@ -19,56 +18,40 @@ import {
 import Button from './ui/Button';
 
 const Navigation = () => {
-  const { user, logout, hasRole, hasAnyRole } = useAuth();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { user, logout } = useAuth();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const navigationItems = [
     {
       name: 'Dashboard',
       href: '/dashboard',
-      icon: Home,
-      roles: ['request_initiator', 'procurement_manager', 'procurement_officer', 'general_user']
+      icon: Home
     },
     {
       name: 'Create Request',
       href: '/create-request',
-      icon: Plus,
-      roles: ['request_initiator']
-    },
-    {
-      name: 'My Requests',
-      href: '/my-requests',
-      icon: FileText,
-      roles: ['request_initiator', 'general_user']
+      icon: Plus
     },
     {
       name: 'All Requests',
       href: '/all-requests',
-      icon: Search,
-      roles: ['procurement_manager', 'procurement_officer']
+      icon: FileText
     },
     {
       name: 'Manage Officers',
       href: '/manage-officers',
-      icon: Users,
-      roles: ['procurement_manager']
+      icon: Users
     },
     {
       name: 'Track Request',
       href: '/track',
-      icon: Search,
-      roles: ['general_user'],
-      public: true
+      icon: Search
     }
   ];
 
-  const filteredItems = navigationItems.filter(item => 
-    item.public || (user && hasAnyRole(item.roles))
-  );
-
   const handleLogout = () => {
     logout();
-    setIsMobileMenuOpen(false);
+    setIsSidebarOpen(false);
   };
 
   if (!user) {
@@ -76,101 +59,81 @@ const Navigation = () => {
   }
 
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
+    <>
+      {/* Mobile menu button */}
+      <div className="lg:hidden fixed top-4 left-4 z-50">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className="bg-white shadow-md"
+        >
+          {isSidebarOpen ? (
+            <X className="h-6 w-6" />
+          ) : (
+            <Menu className="h-6 w-6" />
+          )}
+        </Button>
+      </div>
+
+      {/* Sidebar */}
+      <div className={`fixed inset-y-0 left-0 z-40 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${
+        isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
+        <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center">
+          <div className="flex items-center px-6 py-4 border-b border-gray-200">
             <Link href="/dashboard" className="flex items-center space-x-2">
               <Building2 className="h-8 w-8 text-blue-600" />
               <span className="text-xl font-bold text-gray-900">HESU Procurement</span>
             </Link>
           </div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            {filteredItems.map((item) => {
+          {/* Navigation Items */}
+          <nav className="flex-1 px-4 py-6 space-y-2">
+            {navigationItems.map((item) => {
               const Icon = item.icon;
               return (
                 <Link
                   key={item.name}
                   href={item.href}
-                  className="flex items-center space-x-1 text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                  className="flex items-center space-x-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-100 hover:text-gray-900 transition-colors"
+                  onClick={() => setIsSidebarOpen(false)}
                 >
-                  <Icon className="h-4 w-4" />
-                  <span>{item.name}</span>
+                  <Icon className="h-5 w-5" />
+                  <span className="font-medium">{item.name}</span>
                 </Link>
               );
             })}
-          </div>
+          </nav>
 
-          {/* User Menu */}
-          <div className="hidden md:flex items-center space-x-4">
-            <div className="flex items-center space-x-2 text-sm text-gray-700">
-              <User className="h-4 w-4" />
-              <span>{user.name}</span>
-              <span className="text-gray-400">({user.role.replace('_', ' ')})</span>
+          {/* User Info & Logout */}
+          <div className="px-4 py-4 border-t border-gray-200">
+            <div className="flex items-center space-x-3 px-4 py-3 text-sm text-gray-700">
+              <User className="h-5 w-5" />
+                  <span className="font-medium">{user.firstname} {user.lastname}</span>
             </div>
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
-              <LogOut className="h-4 w-4 mr-1" />
-              Logout
-            </Button>
-          </div>
-
-          {/* Mobile menu button */}
-          <div className="md:hidden flex items-center">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleLogout}
+              className="w-full justify-start text-gray-700 hover:text-gray-900"
             >
-              {isMobileMenuOpen ? (
-                <X className="h-6 w-6" />
-              ) : (
-                <Menu className="h-6 w-6" />
-              )}
+              <LogOut className="h-4 w-4 mr-3" />
+              Logout
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Mobile Navigation */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden">
-          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-gray-50">
-            {filteredItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-base font-medium"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <Icon className="h-5 w-5" />
-                  <span>{item.name}</span>
-                </Link>
-              );
-            })}
-            <div className="border-t border-gray-200 pt-4">
-              <div className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-700">
-                <User className="h-4 w-4" />
-                <span>{user.name}</span>
-              </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleLogout}
-                className="w-full justify-start"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
-            </div>
-          </div>
-        </div>
+      {/* Overlay for mobile */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 z-30 bg-black bg-opacity-50 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
       )}
-    </nav>
+    </>
   );
 };
 

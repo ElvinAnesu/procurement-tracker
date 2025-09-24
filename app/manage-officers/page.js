@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { mockUsers, mockRequests, USER_ROLES } from '../data/mockData';
+import { mockRequests } from '../data/mockData';
 import { 
   Plus, 
   Edit, 
@@ -25,21 +25,46 @@ const ManageOfficersPage = () => {
   const [officers, setOfficers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredOfficers, setFilteredOfficers] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingOfficer, setEditingOfficer] = useState(null);
+  const [formData, setFormData] = useState({
+    firstname: '',
+    middlename: '',
+    lastname: '',
+    email: ''
+  });
+
+  // Fetch officers from API
+  const fetchOfficers = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/procurement-officers');
+      const result = await response.json();
+      
+      if (result.success) {
+        setOfficers(result.data);
+        setFilteredOfficers(result.data);
+      } else {
+        console.error('Error fetching officers:', result.error);
+      }
+    } catch (error) {
+      console.error('Error fetching officers:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (user) {
-      const procurementOfficers = mockUsers.filter(u => u.role === USER_ROLES.PROCUREMENT_OFFICER);
-      setOfficers(procurementOfficers);
-      setFilteredOfficers(procurementOfficers);
-    }
-  }, [user]);
+    fetchOfficers();
+  }, []);
 
   useEffect(() => {
     let filtered = officers;
 
     if (searchTerm) {
       filtered = filtered.filter(officer =>
-        officer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        `${officer.firstname} ${officer.lastname}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
         officer.email.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
@@ -73,9 +98,106 @@ const ManageOfficersPage = () => {
     return { label: 'Needs Improvement', color: 'red' };
   };
 
+  // CRUD Functions
+  const handleAddOfficer = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch('/api/procurement-officers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setFormData({ firstname: '', middlename: '', lastname: '', email: '' });
+        setShowAddForm(false);
+        fetchOfficers(); // Refresh the list
+      } else {
+        alert('Error adding officer: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Error adding officer:', error);
+      alert('Error adding officer');
+    }
+  };
+
+  const handleEditOfficer = (officer) => {
+    setEditingOfficer(officer);
+    setFormData({
+      firstname: officer.firstname,
+      middlename: officer.middlename || '',
+      lastname: officer.lastname,
+      email: officer.email
+    });
+    setShowAddForm(true);
+  };
+
+  const handleUpdateOfficer = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch('/api/procurement-officers', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: editingOfficer.id,
+          ...formData
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setFormData({ firstname: '', middlename: '', lastname: '', email: '' });
+        setEditingOfficer(null);
+        setShowAddForm(false);
+        fetchOfficers(); // Refresh the list
+      } else {
+        alert('Error updating officer: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Error updating officer:', error);
+      alert('Error updating officer');
+    }
+  };
+
+  const handleDeleteOfficer = async (officerId) => {
+    if (!confirm('Are you sure you want to delete this officer?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/procurement-officers?id=${officerId}`, {
+        method: 'DELETE',
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        fetchOfficers(); // Refresh the list
+      } else {
+        alert('Error deleting officer: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Error deleting officer:', error);
+      alert('Error deleting officer');
+    }
+  };
+
+  const handleCancelForm = () => {
+    setFormData({ firstname: '', middlename: '', lastname: '', email: '' });
+    setEditingOfficer(null);
+    setShowAddForm(false);
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Manage Officers</h1>
@@ -97,7 +219,7 @@ const ManageOfficersPage = () => {
                 />
               </div>
               <div className="flex space-x-3">
-                <Button>
+                <Button onClick={() => setShowAddForm(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Officer
                 </Button>
@@ -106,8 +228,64 @@ const ManageOfficersPage = () => {
           </CardContent>
         </Card>
 
+        {/* Add/Edit Officer Form */}
+        {showAddForm && (
+          <Card className="mb-6">
+            <CardHeader>
+              <h3 className="text-lg font-semibold text-gray-900">
+                {editingOfficer ? 'Edit Officer' : 'Add New Officer'}
+              </h3>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={editingOfficer ? handleUpdateOfficer : handleAddOfficer} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label="First Name"
+                    value={formData.firstname}
+                    onChange={(e) => setFormData({...formData, firstname: e.target.value})}
+                    required
+                  />
+                  <Input
+                    label="Last Name"
+                    value={formData.lastname}
+                    onChange={(e) => setFormData({...formData, lastname: e.target.value})}
+                    required
+                  />
+                  <Input
+                    label="Middle Name (Optional)"
+                    value={formData.middlename}
+                    onChange={(e) => setFormData({...formData, middlename: e.target.value})}
+                  />
+                  <Input
+                    label="Email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    required
+                  />
+                </div>
+                <div className="flex space-x-3">
+                  <Button type="submit">
+                    {editingOfficer ? 'Update Officer' : 'Add Officer'}
+                  </Button>
+                  <Button type="button" variant="outline" onClick={handleCancelForm}>
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Officers Grid */}
-        {filteredOfficers.length > 0 ? (
+        {isLoading ? (
+          <Card>
+            <CardContent className="p-12 text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading officers...</p>
+            </CardContent>
+          </Card>
+        ) : filteredOfficers.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredOfficers.map((officer) => {
               const stats = getOfficerStats(officer.email);
@@ -123,16 +301,16 @@ const ManageOfficersPage = () => {
                         </div>
                         <div>
                           <h3 className="text-lg font-semibold text-gray-900">
-                            {officer.name}
+                            {officer.firstname} {officer.middlename} {officer.lastname}
                           </h3>
-                          <p className="text-sm text-gray-600">{officer.department}</p>
+                          <p className="text-sm text-gray-600">Procurement Officer</p>
                         </div>
                       </div>
                       <div className="flex space-x-2">
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" onClick={() => handleEditOfficer(officer)}>
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" onClick={() => handleDeleteOfficer(officer.id)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -146,7 +324,7 @@ const ManageOfficersPage = () => {
                       
                       <div className="flex items-center text-sm text-gray-600">
                         <Building2 className="h-4 w-4 mr-2" />
-                        <span>{officer.department}</span>
+                        <span>Procurement Department</span>
                       </div>
                     </div>
 
@@ -227,7 +405,7 @@ const ManageOfficersPage = () => {
                 }
               </p>
               {!searchTerm && (
-                <Button>
+                <Button onClick={() => setShowAddForm(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add First Officer
                 </Button>

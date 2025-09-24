@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { mockRequests, getStatusDisplayInfo, getPriorityDisplayInfo } from '../data/mockData';
 import { 
   Search, 
   Filter, 
@@ -24,28 +23,62 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 
 const AllRequestsPage = () => {
-  const { user, hasRole } = useAuth();
+  const { user } = useAuth();
   const [requests, setRequests] = useState([]);
   const [filteredRequests, setFilteredRequests] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
-  const [officerFilter, setOfficerFilter] = useState('');
-  const [sortBy, setSortBy] = useState('createdAt');
+  const [isLoading, setIsLoading] = useState(true);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingRequest, setEditingRequest] = useState(null);
+  const [newStatus, setNewStatus] = useState('');
+  const [selectedOfficer, setSelectedOfficer] = useState('');
+  const [officers, setOfficers] = useState([]);
+  const [isLoadingOfficers, setIsLoadingOfficers] = useState(false);
+
+  // Fetch requests from database
+  const fetchRequests = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/item-requests');
+      const result = await response.json();
+      
+      if (result.success) {
+        setRequests(result.data);
+        setFilteredRequests(result.data);
+      } else {
+        console.error('Error fetching requests:', result.error);
+      }
+    } catch (error) {
+      console.error('Error fetching requests:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (user) {
-      let allRequests = [...mockRequests];
+    fetchRequests();
+  }, []);
+
+  // Fetch officers when modal opens
+  const fetchOfficers = async () => {
+    try {
+      setIsLoadingOfficers(true);
+      const response = await fetch('/api/procurement-officers');
+      const result = await response.json();
       
-      // If user is a procurement officer, show only their assigned requests
-      if (hasRole('procurement_officer')) {
-        allRequests = allRequests.filter(req => req.assignedOfficerEmail === user.email);
+      if (result.success) {
+        setOfficers(result.data);
+      } else {
+        console.error('Error fetching officers:', result.error);
       }
-      
-      setRequests(allRequests);
-      setFilteredRequests(allRequests);
+    } catch (error) {
+      console.error('Error fetching officers:', error);
+    } finally {
+      setIsLoadingOfficers(false);
     }
-  }, [user, hasRole]);
+  };
 
   useEffect(() => {
     let filtered = requests;
@@ -53,10 +86,9 @@ const AllRequestsPage = () => {
     // Search filter
     if (searchTerm) {
       filtered = filtered.filter(req =>
-        req.itemRequested.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        req.requisitionNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        req.requesterName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        req.purpose.toLowerCase().includes(searchTerm.toLowerCase())
+        req.item.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        req.requested_by.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        String(req.id).padStart(3, '0').toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -70,70 +102,104 @@ const AllRequestsPage = () => {
       filtered = filtered.filter(req => req.priority === priorityFilter);
     }
 
-    // Officer filter
-    if (officerFilter) {
-      filtered = filtered.filter(req => req.assignedOfficerEmail === officerFilter);
-    }
-
-    // Sort
+    // Sort by creation date (newest first)
     filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'createdAt':
-          return new Date(b.createdAt) - new Date(a.createdAt);
-        case 'updatedAt':
-          return new Date(b.updatedAt) - new Date(a.updatedAt);
-        case 'priority':
-          const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 };
-          return priorityOrder[b.priority] - priorityOrder[a.priority];
-        case 'status':
-          return a.status.localeCompare(b.status);
-        default:
-          return 0;
-      }
+      return new Date(b.created_at) - new Date(a.created_at);
     });
 
     setFilteredRequests(filtered);
-  }, [requests, searchTerm, statusFilter, priorityFilter, officerFilter, sortBy]);
+  }, [requests, searchTerm, statusFilter, priorityFilter]);
 
   const statusOptions = [
     { value: '', label: 'All Statuses' },
-    { value: 'pending', label: 'Pending Assignment' },
-    { value: 'assigned', label: 'Assigned' },
-    { value: 'product_sourcing', label: 'Product Sourcing' },
-    { value: 'create_po', label: 'Purchase Order Created' },
-    { value: 'finance_approval', label: 'Finance Approval' },
-    { value: 'md_approval', label: 'MD Approval' },
-    { value: 'po_payment', label: 'Payment Processing' },
-    { value: 'delivery', label: 'Awaiting Delivery' },
-    { value: 'completed', label: 'Completed' },
-    { value: 'declined', label: 'Declined' },
-    { value: 'cancelled', label: 'Cancelled' }
+    { value: 'pending-assignment', label: 'Pending Assignment' },
+    { value: 'assigned-to-officer', label: 'Assigned to Officer' },
+    { value: 'product-sourcing', label: 'Product Sourcing' },
+    { value: 'po-created', label: 'Purchase Order Created' },
+    { value: 'finance-approval', label: 'Finance Approval' },
+    { value: 'md-approval', label: 'MD Approval' },
+    { value: 'payment-processing', label: 'Payment Processing' },
+    { value: 'awaiting-delivery', label: 'Awaiting Delivery' },
+    { value: 'completed', label: 'Completed' }
   ];
 
   const priorityOptions = [
     { value: '', label: 'All Priorities' },
-    { value: 'urgent', label: 'Urgent' },
     { value: 'high', label: 'High' },
-    { value: 'medium', label: 'Medium' },
+    { value: 'normal', label: 'Normal' },
     { value: 'low', label: 'Low' }
   ];
 
-  const officerOptions = [
-    { value: '', label: 'All Officers' },
-    { value: 'unassigned', label: 'Unassigned' },
-    ...Array.from(new Set(requests.map(req => req.assignedOfficerEmail).filter(Boolean)))
-      .map(email => ({
-        value: email,
-        label: requests.find(req => req.assignedOfficerEmail === email)?.assignedOfficer || email
-      }))
-  ];
+  // Get available status options based on current status (step-by-step workflow)
+  const getAvailableStatusOptions = (currentStatus) => {
+    const statusOrder = [
+      'pending-assignment',
+      'assigned-to-officer', 
+      'product-sourcing',
+      'po-created',
+      'finance-approval',
+      'md-approval',
+      'payment-processing',
+      'awaiting-delivery',
+      'completed'
+    ];
 
-  const sortOptions = [
-    { value: 'createdAt', label: 'Date Created' },
-    { value: 'updatedAt', label: 'Last Updated' },
-    { value: 'priority', label: 'Priority' },
-    { value: 'status', label: 'Status' }
-  ];
+    const currentIndex = statusOrder.indexOf(currentStatus);
+    
+    if (currentIndex === -1) {
+      // If current status not found, return all options
+      return statusOrder.map(status => ({
+        value: status,
+        label: getStatusDisplayInfo(status).label
+      }));
+    }
+
+    // Get all previous steps + current step + next step only
+    const availableOptions = [];
+    
+    // Add all previous steps (can go backwards)
+    for (let i = 0; i <= currentIndex; i++) {
+      availableOptions.push({
+        value: statusOrder[i],
+        label: getStatusDisplayInfo(statusOrder[i]).label
+      });
+    }
+    
+    // Add next step if it exists (can move forward one step)
+    if (currentIndex < statusOrder.length - 1) {
+      availableOptions.push({
+        value: statusOrder[currentIndex + 1],
+        label: getStatusDisplayInfo(statusOrder[currentIndex + 1]).label
+      });
+    }
+
+    return availableOptions;
+  };
+
+
+  const getStatusDisplayInfo = (status) => {
+    const statusMap = {
+      'pending-assignment': { label: 'Pending Assignment', color: 'yellow', icon: Clock },
+      'assigned-to-officer': { label: 'Assigned', color: 'blue', icon: User },
+      'product-sourcing': { label: 'Product Sourcing', color: 'orange', icon: Search },
+      'po-created': { label: 'PO Created', color: 'purple', icon: FileText },
+      'finance-approval': { label: 'Finance Approval', color: 'yellow', icon: Clock },
+      'md-approval': { label: 'MD Approval', color: 'yellow', icon: Clock },
+      'payment-processing': { label: 'Payment Processing', color: 'blue', icon: Clock },
+      'awaiting-delivery': { label: 'Awaiting Delivery', color: 'orange', icon: Clock },
+      'completed': { label: 'Completed', color: 'green', icon: CheckCircle }
+    };
+    return statusMap[status] || { label: status, color: 'gray', icon: Clock };
+  };
+
+  const getPriorityDisplayInfo = (priority) => {
+    const priorityMap = {
+      'high': { label: 'High', color: 'red', icon: FileText },
+      'normal': { label: 'Normal', color: 'blue', icon: FileText },
+      'low': { label: 'Low', color: 'gray', icon: FileText }
+    };
+    return priorityMap[priority] || { label: priority, color: 'gray', icon: FileText };
+  };
 
   const getStatusColor = (status) => {
     const statusInfo = getStatusDisplayInfo(status);
@@ -155,29 +221,92 @@ const AllRequestsPage = () => {
   const getStats = () => {
     const total = requests.length;
     const pending = requests.filter(req => 
-      ['pending', 'assigned', 'product_sourcing', 'create_po', 'finance_approval', 'md_approval', 'po_payment', 'delivery'].includes(req.status)
+      ['pending-assignment', 'assigned-to-officer', 'product-sourcing', 'po-created', 'finance-approval', 'md-approval', 'payment-processing', 'awaiting-delivery'].includes(req.status)
     ).length;
     const completed = requests.filter(req => req.status === 'completed').length;
-    const urgent = requests.filter(req => req.priority === 'urgent').length;
+    const urgent = requests.filter(req => req.priority === 'high').length;
     
     return { total, pending, completed, urgent };
   };
 
   const stats = getStats();
 
+  // Modal handlers
+  const handleEditRequest = (request) => {
+    setEditingRequest(request);
+    setNewStatus(request.status);
+    setSelectedOfficer('');
+    setShowEditModal(true);
+    fetchOfficers(); // Fetch officers when modal opens
+  };
+
+  const handleUpdateStatus = async () => {
+    if (!editingRequest || !newStatus) return;
+
+    // If assigning to officer, require officer selection
+    if (newStatus === 'assigned-to-officer' && !selectedOfficer) {
+      alert('Please select an officer to assign this request to.');
+      return;
+    }
+
+    try {
+      const updateData = {
+        id: editingRequest.id,
+        status: newStatus
+      };
+
+      // If assigning to officer, also update the assigned_to field
+      if (newStatus === 'assigned-to-officer') {
+        updateData.assigned_to = selectedOfficer;
+      }
+
+      const response = await fetch('/api/item-requests', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        // Update the request in the local state
+        setRequests(prev => prev.map(req => 
+          req.id === editingRequest.id ? { 
+            ...req, 
+            status: newStatus,
+            assigned_to: newStatus === 'assigned-to-officer' ? selectedOfficer : req.assigned_to
+          } : req
+        ));
+        setShowEditModal(false);
+        setEditingRequest(null);
+        setNewStatus('');
+        setSelectedOfficer('');
+      } else {
+        alert('Error updating request: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Error updating request:', error);
+      alert('Error updating request');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setShowEditModal(false);
+    setEditingRequest(null);
+    setNewStatus('');
+    setSelectedOfficer('');
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            {hasRole('procurement_officer') ? 'My Assigned Requests' : 'All Requests'}
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-900">All Requests</h1>
           <p className="mt-2 text-lg text-gray-600">
-            {hasRole('procurement_officer') 
-              ? 'Manage your assigned procurement requests'
-              : 'View and manage all procurement requests'
-            }
+            View and manage all procurement requests
           </p>
         </div>
 
@@ -246,13 +375,15 @@ const AllRequestsPage = () => {
             <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
           </CardHeader>
           <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-              <Input
-                label="Search"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search requests..."
-              />
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="md:col-span-2">
+                <Input
+                  label="Search"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search requests..."
+                />
+              </div>
               
               <Select
                 label="Status"
@@ -267,22 +398,6 @@ const AllRequestsPage = () => {
                 onChange={(e) => setPriorityFilter(e.target.value)}
                 options={priorityOptions}
               />
-              
-              {hasRole('procurement_manager') && (
-                <Select
-                  label="Officer"
-                  value={officerFilter}
-                  onChange={(e) => setOfficerFilter(e.target.value)}
-                  options={officerOptions}
-                />
-              )}
-              
-              <Select
-                label="Sort By"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                options={sortOptions}
-              />
             </div>
           </CardContent>
         </Card>
@@ -295,7 +410,14 @@ const AllRequestsPage = () => {
         </div>
 
         {/* Requests Table */}
-        {filteredRequests.length > 0 ? (
+        {isLoading ? (
+          <Card>
+            <CardContent className="p-12 text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading requests...</p>
+            </CardContent>
+          </Card>
+        ) : filteredRequests.length > 0 ? (
           <Card>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
@@ -331,20 +453,20 @@ const AllRequestsPage = () => {
                         <td className="px-6 py-4">
                           <div>
                             <div className="text-sm font-medium text-gray-900">
-                              {request.itemRequested}
+                              {request.item}
                             </div>
                             <div className="text-sm text-gray-500 font-mono">
-                              {request.requisitionNumber}
+                              {String(request.id).padStart(3, '0')}
                             </div>
                           </div>
                         </td>
                         <td className="px-6 py-4">
                           <div>
                             <div className="text-sm font-medium text-gray-900">
-                              {request.requesterName}
+                              {request.requested_by}
                             </div>
                             <div className="text-sm text-gray-500">
-                              {request.department}
+                              Department
                             </div>
                           </div>
                         </td>
@@ -368,26 +490,30 @@ const AllRequestsPage = () => {
                         </td>
                         <td className="px-6 py-4">
                           <div className="text-sm text-gray-900">
-                            {request.assignedOfficer || (
+                            {request.procurement_officers ? (
+                              `${request.procurement_officers.firstname} ${request.procurement_officers.lastname}`
+                            ) : (
                               <span className="text-gray-400 italic">Unassigned</span>
                             )}
                           </div>
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-500">
-                          {format(new Date(request.createdAt), 'MMM dd, yyyy')}
+                          {format(new Date(request.created_at), 'MMM dd, yyyy')}
                         </td>
                         <td className="px-6 py-4 text-sm font-medium">
                           <div className="flex space-x-2">
-                            <Link href={`/track?req=${request.requisitionNumber}`}>
+                            <Link href={`/track?req=${String(request.id).padStart(3, '0')}`}>
                               <Button variant="ghost" size="sm">
                                 <Eye className="h-4 w-4" />
                               </Button>
                             </Link>
-                            {hasRole('procurement_officer') && (
-                              <Button variant="ghost" size="sm">
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                            )}
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleEditRequest(request)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
                           </div>
                         </td>
                       </tr>
@@ -412,6 +538,99 @@ const AllRequestsPage = () => {
               </p>
             </CardContent>
           </Card>
+        )}
+
+        {/* Edit Status Modal */}
+        {showEditModal && editingRequest && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            {/* Blurry Background */}
+            <div 
+              className="absolute inset-0 backdrop-blur-md"
+              onClick={handleCancelEdit}
+            />
+            
+            {/* Modal Content */}
+            <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Update Request Status
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Request #{String(editingRequest.id).padStart(3, '0')} - {editingRequest.item}
+                </p>
+              </div>
+              
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Current Status
+                </label>
+                <div className="p-3 bg-gray-50 rounded-md">
+                  <Badge 
+                    variant={getStatusColor(editingRequest.status)}
+                    icon={getStatusDisplayInfo(editingRequest.status).icon}
+                    size="sm"
+                  >
+                    {getStatusDisplayInfo(editingRequest.status).label}
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  New Status
+                </label>
+                <Select
+                  value={newStatus}
+                  onChange={(e) => setNewStatus(e.target.value)}
+                  options={getAvailableStatusOptions(editingRequest.status)}
+                />
+              </div>
+
+              {/* Officer Selection - Only show when user selects "Assigned to Officer" */}
+              {newStatus === 'assigned-to-officer' && (
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select Officer
+                  </label>
+                  {isLoadingOfficers ? (
+                    <div className="p-3 bg-gray-50 rounded-md text-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                      <p className="text-sm text-gray-600">Loading officers...</p>
+                    </div>
+                  ) : (
+                    <Select
+                      value={selectedOfficer}
+                      onChange={(e) => setSelectedOfficer(e.target.value)}
+                      options={[
+                        { value: '', label: 'Select an officer...' },
+                        ...officers.map(officer => ({
+                          value: officer.id,
+                          label: `${officer.firstname} ${officer.lastname}`
+                        }))
+                      ]}
+                    />
+                  )}
+                </div>
+              )}
+              
+              {/* Action Buttons */}
+              <div className="flex space-x-3">
+                <Button
+                  variant="outline"
+                  onClick={handleCancelEdit}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleUpdateStatus}
+                  className="flex-1"
+                >
+                  Update Status
+                </Button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

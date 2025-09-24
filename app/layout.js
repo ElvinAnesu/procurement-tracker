@@ -25,8 +25,12 @@ export default function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
-          <Navigation />
-          {children}
+          <div className="flex h-screen bg-gray-50">
+            <Navigation />
+            <main className="flex-1 lg:ml-0 overflow-auto">
+              {children}
+            </main>
+          </div>
         </AuthProvider>
       </body>
     </html>

@@ -31,9 +31,8 @@ const MyRequestsPage = () => {
 
   useEffect(() => {
     if (user) {
-      const userRequests = mockRequests.filter(req => req.requesterEmail === user.email);
-      setRequests(userRequests);
-      setFilteredRequests(userRequests);
+      setRequests(mockRequests);
+      setFilteredRequests(mockRequests);
     }
   }, [user]);
 
@@ -127,13 +126,13 @@ const MyRequestsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">My Requests</h1>
+          <h1 className="text-3xl font-bold text-gray-900">All Requests</h1>
           <p className="mt-2 text-lg text-gray-600">
-            View and track all your procurement requests
+            View and track all procurement requests
           </p>
         </div>
 
