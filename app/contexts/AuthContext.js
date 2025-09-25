@@ -61,6 +61,11 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setUser(null);
       localStorage.removeItem('procurement_user');
+      
+      // Redirect to login page after logout
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      }
     }
   };
 

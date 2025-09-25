@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { 
   Search, 
   Filter, 
@@ -14,11 +14,11 @@ import {
   CheckCircle,
   Clock
 } from 'lucide-react';
-import Card, { CardHeader, CardContent } from '../components/ui/Card';
-import Button from '../components/ui/Button';
-import Input from '../components/ui/Input';
-import Select from '../components/ui/Select';
-import Badge from '../components/ui/Badge';
+import Card, { CardHeader, CardContent } from '../../components/ui/Card';
+import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
+import Select from '../../components/ui/Select';
+import Badge from '../../components/ui/Badge';
 import Link from 'next/link';
 import { format } from 'date-fns';
 

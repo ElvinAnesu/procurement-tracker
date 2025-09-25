@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { ArrowLeft, Save } from 'lucide-react';
-import Card, { CardHeader, CardContent } from '../components/ui/Card';
-import Button from '../components/ui/Button';
-import Input from '../components/ui/Input';
-import Select from '../components/ui/Select';
+import Card, { CardHeader, CardContent } from '../../components/ui/Card';
+import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
+import Select from '../../components/ui/Select';
 import Link from 'next/link';
 
 const CreateRequestPage = () => {
@@ -142,7 +142,7 @@ const CreateRequestPage = () => {
 
   const handleViewRequests = () => {
     setShowSuccessModal(false);
-    router.push('/all-requests');
+    router.push('/dashboard/all-requests');
   };
 
   return (

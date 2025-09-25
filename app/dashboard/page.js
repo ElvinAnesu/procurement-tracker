@@ -58,11 +58,25 @@ const DashboardPage = () => {
   const fetchRequests = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/item-requests');
+      
+      // Add timeout to prevent infinite loading
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      const response = await fetch('/api/item-requests', {
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const result = await response.json();
       
       if (result.success) {
-        const requests = result.data;
+        const requests = result.data || [];
         
         // Calculate stats
         const total = requests.length;
@@ -76,19 +90,28 @@ const DashboardPage = () => {
         setRecentRequests(requests.slice(0, 5)); // Get 5 most recent
       } else {
         console.error('Error fetching requests:', result.error);
+        // Set empty data instead of leaving in loading state
+        setStats({ totalRequests: 0, pendingRequests: 0, completedRequests: 0, urgentRequests: 0 });
+        setRecentRequests([]);
       }
     } catch (error) {
       console.error('Error fetching requests:', error);
+      // Set empty data instead of leaving in loading state
+      setStats({ totalRequests: 0, pendingRequests: 0, completedRequests: 0, urgentRequests: 0 });
+      setRecentRequests([]);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
       fetchRequests();
+    } else {
+      // If no user, set loading to false to prevent infinite loading
+      setIsLoading(false);
     }
-  }, [user]);
+  }, [user?.id]); // Only depend on user ID, not the entire user object
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -100,8 +123,8 @@ const DashboardPage = () => {
   const content = {
     title: 'Procurement Management',
     description: 'Manage and track all procurement requests',
-    primaryAction: { text: 'Create New Request', href: '/create-request' },
-    secondaryAction: { text: 'View All Requests', href: '/all-requests' }
+    primaryAction: { text: 'Create New Request', href: '/dashboard/create-request' },
+    secondaryAction: { text: 'View All Requests', href: '/dashboard/all-requests' }
   };
 
   if (isLoading) {

@@ -2,8 +2,8 @@
 
 import { useSearchParams } from 'next/navigation';
 import { CheckCircle, Copy, FileText, ArrowRight } from 'lucide-react';
-import Card, { CardHeader, CardContent } from '../components/ui/Card';
-import Button from '../components/ui/Button';
+import Card, { CardHeader, CardContent } from '../../components/ui/Card';
+import Button from '../../components/ui/Button';
 import Link from 'next/link';
 import { Suspense } from 'react';
 

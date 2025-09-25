@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { mockRequests } from '../data/mockData';
+import { useAuth } from '../../contexts/AuthContext';
+import { mockRequests } from '../../data/mockData';
 import { 
   Plus, 
   Edit, 
@@ -14,10 +14,10 @@ import {
   CheckCircle,
   Clock
 } from 'lucide-react';
-import Card, { CardHeader, CardContent } from '../components/ui/Card';
-import Button from '../components/ui/Button';
-import Input from '../components/ui/Input';
-import Badge from '../components/ui/Badge';
+import Card, { CardHeader, CardContent } from '../../components/ui/Card';
+import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
+import Badge from '../../components/ui/Badge';
 import { format } from 'date-fns';
 
 const ManageOfficersPage = () => {

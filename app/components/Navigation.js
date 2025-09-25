@@ -29,17 +29,17 @@ const Navigation = () => {
     },
     {
       name: 'Create Request',
-      href: '/create-request',
+      href: '/dashboard/create-request',
       icon: Plus
     },
     {
       name: 'All Requests',
-      href: '/all-requests',
+      href: '/dashboard/all-requests',
       icon: FileText
     },
     {
       name: 'Manage Officers',
-      href: '/manage-officers',
+      href: '/dashboard/manage-officers',
       icon: Users
     },
     {

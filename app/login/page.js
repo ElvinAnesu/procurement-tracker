@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '../contexts/AuthContext';
 import { Building2, Eye, EyeOff } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
@@ -14,29 +15,28 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    
+    // Additional validation check
+    if (!email.trim() || !password.trim()) {
+      setError('Please fill in all fields');
+      return;
+    }
+    
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/signin', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        // Store user data in localStorage for the auth context
-        localStorage.setItem('procurement_user', JSON.stringify(data.user));
+      const result = await login(email, password);
+      
+      if (result.success) {
+        // AuthContext handles user state and localStorage
         router.push('/dashboard');
       } else {
-        setError(data.error || 'Login failed');
+        setError(result.error || 'Login failed');
       }
     } catch (err) {
       setError('An error occurred during login');
@@ -108,7 +108,7 @@ const LoginPage = () => {
                 type="submit"
                 className="w-full"
                 loading={loading}
-                disabled={!email || !password}
+                disabled={!email.trim() || !password.trim()}
               >
                 Sign in
               </Button>

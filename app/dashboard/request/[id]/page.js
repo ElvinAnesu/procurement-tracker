@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useAuth } from '../../contexts/AuthContext';
-import { mockRequests, getStatusDisplayInfo, getPriorityDisplayInfo } from '../../data/mockData';
+import { useAuth } from '../../../contexts/AuthContext';
 import { 
   ArrowLeft, 
   Edit, 
@@ -17,10 +16,10 @@ import {
   Clock,
   AlertTriangle
 } from 'lucide-react';
-import Card, { CardHeader, CardContent } from '../../components/ui/Card';
-import Button from '../../components/ui/Button';
-import Badge from '../../components/ui/Badge';
-import StatusTracker from '../../components/StatusTracker';
+import Card, { CardHeader, CardContent } from '../../../components/ui/Card';
+import Button from '../../../components/ui/Button';
+import Badge from '../../../components/ui/Badge';
+import StatusTracker from '../../../components/StatusTracker';
 import Link from 'next/link';
 import { format } from 'date-fns';
 
